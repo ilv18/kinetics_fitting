@@ -1,0 +1,26 @@
+[build-system]
+requires = ["setuptools>=61.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "kinetics_fitting"
+version = "0.1.0"
+description = "Five parameter logistic (5PL) fitting of kinetic data for DNA conjugated to nanoparticle surfaces."
+readme = "README.md"
+license = { file = "LICENSE" }
+authors = [
+  { name="Inga Van den Bossche", email="inga.vandenbossche@exeter.ox.ac.uk" }
+]
+dependencies = [
+  "numpy>=1.20",
+  "pandas>=1.4",
+  "scipy",
+  "matplotlib",
+  "seaborn"
+]
+classifiers = [
+  "Programming Language :: Python :: 3",
+  "License :: OSI Approved :: MIT License",
+  "Operating System :: OS Independent"
+]
+
