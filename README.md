@@ -9,4 +9,4 @@ To this end a logistic fitting function can be applied to both the quenched acce
   />
 </p>
 
-Parameters in equation defined *d* and *a* such that *lim_<sub>{x -> ∞}</sub> y(x)=d* and *\lim_<sub>{x -> 0}</sub> y(x)=a*. The parameter *c* represented the inflection point of the 5PL; *p* the slope at *c*, the sign of which determined whether the sigmoidal curve was increasing *(p >0)* or decreasing *(p<0)*, and *s* the difference in rate *p* before and after the inflection point *c*. In a 4PL fit *s =1*.
+Parameters in equation defined *d* and *a* such that *lim_<sub>{x -> ∞}</sub> y(x)=d* and *lim_<sub>{x -> 0}</sub> y(x)=a*. The parameter *c* represented the inflection point of the 5PL; *p* the slope at *c*, the sign of which determined whether the sigmoidal curve was increasing *(p >0)* or decreasing *(p<0)*, and *s* the difference in rate *p* before and after the inflection point *c*. In a 4PL fit *s =1*.
