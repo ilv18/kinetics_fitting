@@ -11,8 +11,10 @@ def main():
     import numpy as np
 
     pkg_dir = Path(__file__).resolve().parent
-    result_folder = pkg_dir / "Python Plots Rate Constant"
-    examples_folder = pkg_dir / "examples"
+    eg_parent = pkg_dir.parent
+    eg_parent = eg_parent.parent
+    result_folder = eg_parent / "Python Plots Rate Constant"
+    examples_folder = eg_parent / "examples"
     result_folder.mkdir(exist_ok=True)
 
     # --- MANUALLY DEFINE: labels
