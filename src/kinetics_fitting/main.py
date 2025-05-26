@@ -13,8 +13,8 @@ def main():
     pkg_dir = Path(__file__).resolve().parent
     eg_parent = pkg_dir.parent
     eg_parent = eg_parent.parent
-    result_folder = eg_parent / "Python Plots Rate Constant"
     examples_folder = eg_parent / "examples"
+    result_folder = examples_folder / "Python Plots Rate Constant"
     result_folder.mkdir(exist_ok=True)
 
     # --- MANUALLY DEFINE: labels
