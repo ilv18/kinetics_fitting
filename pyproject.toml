@@ -27,3 +27,5 @@ classifiers = [
 
 [project.scripts]
 kinetics-fitting = "kinetics_fitting.main:main"
+
+# end of file.
