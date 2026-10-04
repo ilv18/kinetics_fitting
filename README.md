@@ -2,7 +2,7 @@
 
 Kinetic analysis of DNA hybridization and toehold-mediated strand displacement (TMSD), in solution and on
 DNA-conjugated F8BT semiconducting polymer nanoparticles, as used for the real-time fluorescence kinetics in
-Van den Bossche *et al.* (Table S4; Figures 2H, 2I, 3G, 3H, S2–S6 and S12).
+Van den Bossche *et al.*, bioRxiv, 2026. (Table S4; Figures 2H, 2I, 3G, 3H, S2–S6 and S12).
 
 ## Models
 
