@@ -1,103 +1,58 @@
-# import packages
+"""Reading Cary Eclipse kinetics exports and locating strand injections."""
 from pathlib import Path
-import pandas as pd 
-import re #regex package can be used to parse long strings
-from .fitting import alt_five_param_logistic_equation
 
-# merging time (s)_540 and time (s)_650 and intensity columns into one, + creating a new column for 'group' with either 540 or 650 as measurement
-def wavelengthMerger(rep_df):
-    df_540 = pd.DataFrame({
-        'Time': rep_df['Time (s)_540'],
-        'Intensity': rep_df['Intensity (a.u.)_540'],
-        'Group': 'ex:450/em:540'})
-
-    df_650 = pd.DataFrame({
-        'Time': rep_df['Time (s)_650'],
-        'Intensity': rep_df['Intensity (a.u.)_650'],
-        'Group': 'ex:450/em:650'})
-
-    result = pd.concat([df_540, df_650], ignore_index=True)
-    # convert time to numeric
-    result['Time'] = pd.to_numeric(result['Time'])
-    #sort by time
-    result = result.sort_values(by='Time')
-
-    return result
+import numpy as np
+import pandas as pd
 
 
-# add a second column called Wavelength to each dataframe, that extracts the last three numbers from Group
-def waveExtractor(rep_df):
-    rep_df['Wavelength'] = rep_df['Group'].str.extract(r'(\d+$)')
-    #and ensure it is numeric
-    rep_df['Wavelength'] = pd.to_numeric(rep_df['Wavelength'])
-    return rep_df
+def load_trace(path, col):
+    """Return (time, intensity) for one channel of a Cary Eclipse .csv export.
+
+    The export has two header rows and one (time, intensity) column pair per channel; ``col`` is the 1-based index
+    of the intensity column (1 = first channel, 3 = second channel).
+    """
+    raw = pd.read_csv(Path(path), header=None, skiprows=2).apply(pd.to_numeric, errors="coerce")
+    d = raw.iloc[:, [col - 1, col]].dropna()
+    return d.iloc[:, 0].to_numpy(float), d.iloc[:, 1].to_numpy(float)
 
 
-def dataExtractor(result_folder: Path, raw_data_lookup: dict) -> pd.DataFrame:
-    results = {}
-    
-    # file structure: 2ndfit_650_502_rep1
-    for file in result_folder.glob("2ndfit_*.txt"):
-        #print("Found file:", file)
-        with open(file, "r") as f:
-            content = f.read()  # read entire text file
+def injection_t0(t, y, win_start):
+    """Injection spike = largest deviation from the pre-injection baseline before the fit-window start.
 
-        try:
-            filename = file.stem.replace("2ndfit_", "")
-            params_match = re.search(r'params:\s*\[([^]]+)\]', content, flags=re.DOTALL)
-            if not params_match:
-                raise ValueError("Could not find 'params' array in text.")
+    Returns (t_spike, t0), with t0 the first recorded time point after the spike (time zero of the fit).
+    """
+    search = t <= min(win_start, 200.0) + 1.0
+    ts, ys = t[search], y[search]
+    base = np.median(ys[: max(5, len(ys) // 5)])
+    i = int(np.argmax(np.abs(ys - base)))
+    return ts[i], (t[i + 1] if i + 1 < len(t) else t[i])
 
-            params_str = params_match.group(1)
-            params_str = params_str.replace("[", "").replace("]", "").replace(",", "")
-            tokens = params_str.split() #no argument splits on all whitespaces
-            #print("DEBUC:G: tokens:", tokens)
-            params = [float(x) for x in tokens]
-            if len(params) != 5:
-                raise ValueError(f"Expected 5 parameters, got {len(params)}: {params}")
 
-            A1, A2, c, p_val, S = params
-            # A1 now contains the rate constant.
+def pre_injection_level(t, y, t_spike):
+    """Median signal 30-2 s before the injection, corrected from 151.5 uL to 153 uL (dilution by the injection)."""
+    return np.median(y[(t < t_spike - 2) & (t > t_spike - 30)]) * 151.5 / 153
 
-            cov_match = re.search(r'covariance:\s*(\[\[.*\]\])', content, flags=re.DOTALL)
-            if not cov_match:
-                raise ValueError("Could not find 'covariance' array in text.")
 
-            cov_str = cov_match.group(1)
-            #print("DEBUC:G: cov_str:", cov_str)
-            cov_str = cov_str.replace("[", '').replace("]", "").replace(",", "")
-            cov_tokens = cov_str.split()
-            cov_nums = [float(x) for x in cov_tokens]
+def find_injections(t, y):
+    """Injection spikes in a multi-injection trace: points deviating strongly from a running median, grouped
+    within 10 s. Returns a list of (spike time, index of last spike point)."""
+    med = pd.Series(y).rolling(9, center=True, min_periods=1).median().to_numpy()
+    dev = np.abs(y - med)
+    idx = np.where(dev > max(8.0, 8 * np.median(dev)))[0]
+    groups = []
+    for i in idx:
+        if groups and t[i] - t[groups[-1][-1]] <= 10:
+            groups[-1].append(i)
+        else:
+            groups.append([i])
+    return [(t[g[0]], g[-1]) for g in groups if t[g[0]] > 20]
 
-            if len(cov_nums) != 25:
-                raise ValueError(f"Expected at least 25 covariance values, got {len(cov_nums)}")
-            
-            # Suppose the diagonal is the first 5 entries (depending on shape):
-            A1_cov = cov_nums[0]
-            A2_cov = cov_nums[6]
-            c_cov = cov_nums[12]
-            p_cov = cov_nums[18]
-            S_cov = cov_nums[24]
 
-            # -- Add RSSE Calculation --
-            if filename in raw_data_lookup:
-                time_data = raw_data_lookup[filename]["Time (s)_540"]
-                intensity_data = raw_data_lookup[filename]["Intensity (a.u.)_540"]
-
-            # Normalize time as done in fit (shift so it starts at zero)
-                time_norm = time_data - time_data.min()
-                y_pred = alt_five_param_logistic_equation(time_norm, A1, A2, c, p_val, S)
-
-            # store in dictionary
-            results[filename] = [A1, A2, c, p_val, S, A1_cov, A2_cov, c_cov, p_cov, S_cov]
-
-        except Exception as e:
-            print(f"Error processing {file}: {e}")
-
-    df = pd.DataFrame.from_dict(
-        results, 
-        orient='index', 
-        columns=["A1", "A2", "c", "p", "S", "A1_cov", "A2_cov", "c_cov", "p_cov", "S_cov"]
-    )
-
-    return df
+def all_injections(path, channels):
+    """Union of the injections found in all channels of one file, merged within 10 s (earliest time kept)."""
+    ts = sorted(tt for _, col in channels for tt, _ in find_injections(*load_trace(path, col)))
+    merged = []
+    for x in ts:
+        if not merged or x - merged[-1] > 10:
+            merged.append(x)
+    return merged

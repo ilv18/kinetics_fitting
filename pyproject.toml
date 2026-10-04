@@ -4,19 +4,20 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "kinetics_fitting"
-version = "0.1.0"
-description = "Five parameter logistic (5PL) fitting of kinetic data for DNA conjugated to nanoparticle surfaces."
+version = "0.2.0"
+description = "Second-order and five-parameter logistic fitting of real-time fluorescence kinetics of DNA hybridization and strand displacement in solution and on DNA-conjugated nanoparticles."
 readme = "README.md"
 license = { file = "LICENSE" }
+requires-python = ">=3.9"
 authors = [
   { name="Inga Van den Bossche", email="inga.vandenbossche@exeter.ox.ac.uk" }
 ]
 dependencies = [
   "numpy>=1.20",
   "pandas>=1.4",
-  "scipy",
-  "matplotlib",
-  "seaborn"
+  "scipy>=1.7",
+  "matplotlib>=3.5",
+  "seaborn>=0.12"
 ]
 classifiers = [
   "Programming Language :: Python :: 3",
@@ -24,3 +25,5 @@ classifiers = [
   "Operating System :: OS Independent"
 ]
 
+[project.scripts]
+kinetics-fitting = "kinetics_fitting.main:main"
